@@ -1,22 +1,32 @@
-import React, {useState} from 'react'
+import React, { useState } from 'react'
+import { useChat } from 'ai/react'
 
-const chat = () => {
-
-    const [input,setInput] = useState('');
+const Chat = () => {
+    const [input, setInput] = useState('');
     const [messages, setMessages] = useState([{ role: "system", content: "You are a helpful assistant." }]);
+
     const handleInputChange = (event) => {
         setInput(event.target.value);
     }
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
-        if (input.trim()) {
-            const newMessage = {role: "user", content: input.trim()};
-            setMessages([...messages, newMessage]);
-            setInput(''); 
-        }
-    }
+        if (!input.trim()) return;
+        const userMessage = { role: "user", content: input.trim() };
+        setMessages(prevMessages => [...prevMessages, userMessage]);
 
+        try {
+            const response = await axios.post('/api/chat', {
+                messages: [...messages, userMessage]
+            });
+
+            const assistantMessage = { role: "assistant", content: response.data.message };
+            setMessages(prevMessages => [...prevMessages, userMessage, assistantMessage]);
+        } catch (error) {
+            console.error('Error fetching response:', error);
+        }
+        setInput('');
+    }
 
     return (
         <div className='mt-3 p-4'>
@@ -25,7 +35,7 @@ const chat = () => {
             </div>
             <div className="chat-section">
                 {messages.map((message, index) => (
-                    <div key={index} className={`chat-bubble ${message.role === 'system' ? 'chat-start' : 'chat-end'}`}>
+                    <div key={index} className={`chat-bubble ${message.role}`}>
                         {message.content}
                     </div>
                 ))}
@@ -44,4 +54,5 @@ const chat = () => {
     )
 }
 
-export default chat
+export default Chat
+
