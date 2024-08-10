@@ -1,57 +1,54 @@
-import React, { useState } from 'react'
+'use client'
+import React from 'react'
 import { useChat } from 'ai/react'
+import { useEffect, useRef } from 'react'
+
 
 const Chat = () => {
-    const [input, setInput] = useState('');
-    const [messages, setMessages] = useState([{ role: "system", content: "You are a helpful assistant." }]);
+    const { messages, input, handleInputChange, handleSubmit } = useChat({
+        api: '/api/openai-test'
+    });
 
-    const handleInputChange = (event) => {
-        setInput(event.target.value);
-    }
-
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        if (!input.trim()) return;
-        const userMessage = { role: "user", content: input.trim() };
-        setMessages(prevMessages => [...prevMessages, userMessage]);
-
-        try {
-            const response = await axios.post('/api/chat', {
-                messages: [...messages, userMessage]
-            });
-
-            const assistantMessage = { role: "assistant", content: response.data.message };
-            setMessages(prevMessages => [...prevMessages, userMessage, assistantMessage]);
-        } catch (error) {
-            console.error('Error fetching response:', error);
+    const chatContainer = useRef(null);
+    const scroll = () => {
+        if (chatContainer.current) {
+            const { offsetHeight, scrollHeight, scrollTop } = chatContainer.current;
+            if (scrollHeight >= scrollTop + offsetHeight) {
+                chatContainer.current?.scrollTo(0, scrollHeight + 200)
+            }
         }
-        setInput('');
     }
 
-    return (
-        <div className='mt-3 p-4'>
-            <div className='mb-1 text-center'>
-                <h1>Chat with AI Assistant</h1>
-            </div>
-            <div className="chat-section">
-                {messages.map((message, index) => (
-                    <div key={index} className={`chat-bubble ${message.role}`}>
-                        {message.content}
+    useEffect(() => {
+        scroll();
+    }, [messages]);
+
+    const renderResponse = () => {
+        return (
+            <div className="response">
+                {messages.map((m, index) => (
+                    <div key={m.id} className={`chat-line ${m.role === 'user' ? 'user-chat' : 'ai-chat'}`}>
+                        <div style={{ width: '100%', marginLeft: '16px' }}>
+                            <p className="message">{m.content}</p>
+                            {index < messages.length - 1 && <div className="horizontal-line" />}
+                        </div>
                     </div>
                 ))}
             </div>
-            <form className="flex w-full max-w-md absolute bottom-3" onSubmit={handleSubmit}>
-                <input 
-                    type="text" 
-                    placeholder="Type here" 
-                    className="input border-solid border-2 w-full" 
-                    value={input}
-                    onChange={handleInputChange}
-                />
-                <button type="submit" className="submit-btn">Send</button>
+        );
+    };
+
+    return (
+        <div ref={chatContainer} className="chat">
+            {renderResponse()}
+            <form onSubmit={handleSubmit} className="mainForm">
+                <input name="inputField" type="text" placeholder="Say anything" onChange={handleInputChange} value={input} />
+                <button type="submit" className="mainButton" />
             </form>
         </div>
-    )
+    );
+
+
 }
 
 export default Chat
